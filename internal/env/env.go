@@ -2,6 +2,7 @@ package env
 
 import (
 	"os"
+	"strconv"
 )
 
 func GetString(key, fallback string) string {
@@ -21,5 +22,10 @@ func GetInt(key string, fallback int) int {
 		return fallback
 	}
 
-	return val
+	valAsInt, err := strconv.Atoi(val)
+	if err != nil {
+		return fallback
+	}
+
+	return valAsInt
 }
