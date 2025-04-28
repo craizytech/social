@@ -14,7 +14,7 @@ func main() {
 		db: dbConfig{
 			addr: env.GetString(
 				"DB_ADDR",
-				"postgres://admin:adminpassword@localhost/social?sslmode=disable",
+				"postgres://admin:adminpassword@localhost/socialnetwork?sslmode=disable",
 			),
 			maxOpenConns: env.GetInt("DB_MAX_OPEN_CONNS", 30),
 			maxIdleConns: env.GetInt("DB_MAX_IDLE_CONNS", 30),
@@ -32,6 +32,9 @@ func main() {
 	if err != nil {
 		log.Panic(err)
 	}
+
+	defer db.Close()
+	log.Println("Database connection pool established")
 
 	store := store.NewStorage(db)
 
