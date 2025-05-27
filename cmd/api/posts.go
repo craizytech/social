@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"errors"
 	"net/http"
 	"strconv"
@@ -69,9 +70,69 @@ func (app *application) getPostHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := writeJSON(w, http.StatusOK, post); err != nil {
+	comments, err := app.store.Comments.GetByPostID(ctx, id)
+	if err != nil {
 		app.internalServerError(w, r, err)
 		return
 	}
 
+	post.Comments = comments
+
+	if err := writeJSON(w, http.StatusOK, post); err != nil {
+		app.internalServerError(w, r, err)
+		return
+	}
+}
+
+func (app application) deletePostHandler(w http.ResponseWriter, r *http.Request) {
+	idParam := chi.URLParam(r, "postID")
+	id, err := strconv.ParseInt(idParam, 10, 64)
+	if err != nil {
+		app.internalServerError(w, r, err)
+		return
+	}
+	ctx := r.Context()
+
+	if err := app.store.Posts.Delete(ctx, id); err != nil {
+		switch {
+		case errors.Is(err, store.ErrNotFound):
+			app.notFoundResponse(w, r, err)
+		default:
+			app.internalServerError(w, r, err)
+		}
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
+}
+
+func (app *application) updatePostHandler(w http.ResponseWriter, r *http.Request) {
+
+}
+
+func (app *application) postsContextMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		idParam := chi.URLParam(r, "postID")
+		id, err := strconv.ParseInt(idParam, 10, 64)
+		if err != nil {
+			app.internalServerError(w, r, err)
+			return
+		}
+		ctx := r.Context()
+
+		post, err := app.store.Posts.GetByID(ctx, id)
+		if err != nil {
+			switch {
+			case errors.Is(err, store.ErrNotFound):
+				app.notFoundResponse(w, r, err)
+			default:
+				app.internalServerError(w, r, err)
+			}
+			return
+		}
+
+		ctx = context.WithValue(ctx, "post", post)
+		next.ServeHTTP(w, r.WithContext(ctx))
+
+	})
 }
