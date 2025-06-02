@@ -12,7 +12,7 @@ func (app *application) heathCheckHandler(w http.ResponseWriter, r *http.Request
 		"version": version,
 	}
 
-	if err := writeJSON(w, http.StatusOK, data); err != nil {
+	if err := app.jsonResponse(w, http.StatusOK, data); err != nil {
 		app.internalServerError(w, r, err)
 	}
 }
